@@ -74,9 +74,16 @@ define :scalarium_deploy do
       end
 
       before_migrate do
-        if deploy[:application_type] == 'rails' and deploy[:auto_bundle_on_deploy] and File.exists?("#{release_path}/Gemfile")
-          Chef::Log.info("Gemfile detected. Running bundle install.")
-          run("cd #{release_path} && bundle install #{deploy[:home]}/.bundler/#{application} --without=test development")
+        if deploy[:application_type] == 'rails'
+          if deploy[:auto_bundle_on_deploy] and File.exists?("#{release_path}/Gemfile")
+            Chef::Log.info("Gemfile detected. Running bundle install.")
+            run("cd #{release_path} && bundle install #{deploy[:home]}/.bundler/#{application} --without=test development")
+          end
+
+          scalarium_rails do
+            deploy_data deploy
+            app application
+          end
         end
         run_callback_from_file("#{release_path}/deploy/before_migrate.rb")
       end
@@ -86,37 +93,6 @@ define :scalarium_deploy do
   ruby_block "change HOME back to /root after source checkout" do
     block do
       ENV['HOME'] = "/root"
-    end
-  end
-
-  if deploy[:application_type] == 'rails' && node[:scalarium][:instance][:roles].include?('rails-app')
-    ruby_block 'Determine database adapter' do
-      inner_deploy = deploy
-      inner_application = application
-      block do
-        inner_deploy[:database][:adapter] = if File.exists?("#{inner_deploy[:deploy_to]}/current/config/application.rb")
-          Chef::Log.info("Looks like #{inner_application} is a Rails 3 application")
-          'mysql2'
-        else
-          Chef::Log.info("No config/application.rb found, assuming #{inner_application} is a Rails 2 application")
-          'mysql'
-        end
-      end
-    end
-
-    # write out database.yml
-    template "#{deploy[:deploy_to]}/shared/config/database.yml" do
-      cookbook "rails"
-      source "database.yml.erb"
-      mode "0660"
-      owner deploy[:user]
-      group deploy[:group]
-      variables(:database => deploy[:database], :environment => deploy[:rails_env])
-    end
-
-    passenger_web_app do
-      application application
-      deploy deploy
     end
   end
 
