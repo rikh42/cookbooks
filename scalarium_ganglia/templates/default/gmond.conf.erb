@@ -12,13 +12,16 @@ globals {
   cleanup_threshold = 500 /*secs */ 
   gexec = no             
   send_metadata_interval = 15
+  <% if node[:platform] == 'ubuntu' && node[:platform_version].to_f >= 11.00 %>
+  override_hostname = <%= node[:scalarium][:instance][:hostname] %>
+  <% end %>
 } 
 
 /* If a cluster attribute is specified, then all gmond hosts are wrapped inside 
  * of a <CLUSTER> tag.  If you do not specify a cluster tag, then all <HOSTS> will 
  * NOT be wrapped inside of a <CLUSTER> tag. */ 
 cluster { 
-  name = "<%= @cluster_name %>" 
+  name = "<%= @cluster_name.gsub(/[\(\)\[\]\&]/,'') %>"
   owner = "Scalarium" 
   latlong = "unspecified" 
   url = "unspecified" 
@@ -37,7 +40,7 @@ udp_send_channel {
 }
 <% end %>
 
-<% if @monitoring_master && @monitoring_master == node[:scalarium][:instance][:private_dns_name] %>
+<% if @monitoring_master && @monitoring_master == node[:scalarium][:instance][:private_ip] %>
 udp_recv_channel {
   port = <%= node[:ganglia][:udp_client_port] %>
   family = inet4

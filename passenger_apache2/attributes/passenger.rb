@@ -1,12 +1,18 @@
-default[:scalarium][:ruby_version] = '1.8'
+include_attribute 'rails::rails'
 
-default[:passenger][:version] = '2.2.11'
-default[:passenger][:gems_path] = "/usr/local/lib/ruby/gems/#{node[:scalarium][:ruby_version] > "1.9" ? "1.9.1" : "1.8"}/gems"
+case node[:scalarium][:ruby_version]
+when /1.8/
+  default[:passenger][:gems_path] = '/usr/local/lib/ruby/gems/1.8/gems'
+else
+  default[:passenger][:gems_path] = '/usr/local/lib/ruby/gems/1.9.1/gems'
+end
+
+default[:passenger][:version] = '3.0.9'
 default[:passenger][:root_path] = "#{node[:passenger][:gems_path]}/passenger-#{passenger[:version]}"
 default[:passenger][:module_path] = "#{passenger[:root_path]}/ext/apache2/mod_passenger.so"
-default[:passenger][:ruby_bin] = "/usr/local/bin/ruby"
-default[:passenger][:ruby_wrapper_bin] = "/usr/local/bin/ruby_gc_wrapper.sh"
-default[:passenger][:gem_bin] = "/usr/local/bin/gem"
+default[:passenger][:ruby_bin] = '/usr/local/bin/ruby'
+default[:passenger][:ruby_wrapper_bin] = '/usr/local/bin/ruby_gc_wrapper.sh'
+default[:passenger][:gem_bin] = '/usr/local/bin/gem'
 default[:passenger][:stat_throttle_rate] = 5
 default[:passenger][:rails_framework_spawner_idle_time] = 0
 default[:passenger][:rails_app_spawner_idle_time] = 0

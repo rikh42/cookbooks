@@ -3,6 +3,7 @@ package "lvm2"
 
 execute "Load device mapper kernel module" do
   command "modprobe dm-mod"
+  ignore_failure true
 end
 
 node[:ebs][:raids].each do |raid_device, options|
@@ -54,6 +55,9 @@ node[:ebs][:raids].each do |raid_device, options|
     fstype options[:fstype]
     device lvm_device
     options "noatime"
+    not_if do
+      File.read('/etc/mtab').split("\n").any?{|line| line.match(" #{options[:mount_point]} ")}
+    end
   end
 
   mount options[:mount_point] do
@@ -61,6 +65,9 @@ node[:ebs][:raids].each do |raid_device, options|
     fstype options[:fstype]
     device lvm_device
     options "noatime"
+    not_if do
+      File.read('/etc/mtab').split("\n").any?{|line| line.match(" #{options[:mount_point]} ")}
+    end
   end
 
   template "/etc/mdadm/mdadm.conf" do

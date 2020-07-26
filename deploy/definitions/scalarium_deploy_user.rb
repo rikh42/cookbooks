@@ -11,7 +11,6 @@ define :scalarium_deploy_user do
     home deploy[:home]
     supports :manage_home => true
     shell deploy[:shell]
-
     not_if do
       existing_usernames = []
       Etc.passwd {|user| existing_usernames << user['name']}
@@ -19,3 +18,4 @@ define :scalarium_deploy_user do
     end
   end
 end
+

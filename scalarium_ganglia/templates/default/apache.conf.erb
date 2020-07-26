@@ -5,7 +5,7 @@ Alias <%= node[:ganglia][:web][:url] %> /usr/share/ganglia-webfrontend
   AuthType Basic
   AuthName "Password Required"
   require valid-user
-  
+
   <IfModule passenger_module>
     PassengerEnabled off
   </IfModule>

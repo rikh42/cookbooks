@@ -1,4 +1,5 @@
 define :passenger_web_app do
+  include_recipe "apache2::service"
   deploy = params[:deploy]
   application = params[:application]
 
@@ -13,6 +14,48 @@ define :passenger_web_app do
         Chef::Log.info("No config.ru found, assuming #{inner_application} is a Rails application")
         "Rails"
       end
+    end
+  end
+
+  template "/etc/apache2/ssl/#{deploy[:domains].first}.crt" do
+    cookbook 'passenger_apache2'
+    mode '0600'
+    source "ssl.key.erb"
+    variables :key => deploy[:ssl_certificate]
+    notifies :restart, resources(:service => "apache2")
+    only_if do
+      deploy[:ssl_support]
+    end
+  end
+
+  template "/etc/apache2/ssl/#{deploy[:domains].first}.key" do
+    cookbook 'passenger_apache2'
+    mode '0600'
+    source "ssl.key.erb"
+    variables :key => deploy[:ssl_certificate_key]
+    notifies :restart, resources(:service => "apache2")
+    only_if do
+      deploy[:ssl_support]
+    end
+  end
+
+  template "/etc/apache2/ssl/#{deploy[:domains].first}.ca" do
+    cookbook 'passenger_apache2'
+    mode '0600'
+    source "ssl.key.erb"
+    variables :key => deploy[:ssl_certificate_ca]
+    notifies :restart, resources(:service => "apache2")
+    only_if do
+      deploy[:ssl_support] && deploy[:ssl_certificate_ca]
+    end
+  end
+
+  # move away default virtual host so that the Rails app becomes the default virtual host
+  execute "mv away default virtual host" do
+    action :run
+    command "mv /etc/apache2/sites-enabled/000-default /etc/apache2/sites-enabled/zzz-default"
+    only_if do
+      File.exists?("#{node[:apache][:dir]}/sites-enabled/000-default")
     end
   end
 

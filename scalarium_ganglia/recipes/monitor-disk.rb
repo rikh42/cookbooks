@@ -1,13 +1,13 @@
 package "bc"
 
-disks = `mount | grep /dev/sd | awk '{print $1}'`.split("\n")
+disks = `mount | grep -E '/dev/sd|/dev/xvd' | awk '{print $1}'`.split("\n")
 
 if node[:ebs] && node[:ebs][:devices]
   Chef::Log.info("Adding EBS volumes #{node[:ebs][:devices].keys.inspect} to monitoring")
   disks = disks + node[:ebs][:devices].keys
 end
 
-disks = disks.flatten.map{|d| d.gsub('/dev/', '')}.uniq
+disks = disks.flatten.map{|d| d.sub('/dev/', '').sub(/(xvd.)(.*)/, '\1p\2')}.uniq
 
 disks.each do |device_id|
   Chef::Log.info("Installing Monitoring for disk #{device_id}")

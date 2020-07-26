@@ -2,11 +2,12 @@ maintainer "Peritor GmbH"
 maintainer_email "scalarium@peritor.com"
 description "Installs Rails"
 version "0.1"
-supports "ubuntu", ">=  8.10"
+supports "ubuntu", ">= 8.10"
 
 recipe "rails::configure", "Re-configure a Rails application"
 
 depends "apache2"
+depends "nginx"
 
 attribute "rails",
   :display_name => "Rails",
@@ -22,4 +23,3 @@ attribute "rails/max_pool_size",
   :display_name => "Rails Max Pool Size",
   :description => "Specify the MaxPoolSize in the Apache vhost",
   :default => "4"
-

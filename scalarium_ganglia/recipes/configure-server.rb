@@ -1,9 +1,5 @@
-include_recipe "apache2::service"
-
-service "gmetad" do
-  supports :status => false, :restart => true
-  action :nothing
-end
+include_recipe 'apache2::service'
+include_recipe 'scalarium_ganglia::service-gmetad'
 
 template "/etc/ganglia/gmetad.conf" do
   source "gmetad.conf.erb"
@@ -36,6 +32,8 @@ template "#{node[:apache][:document_root]}/index.html" do
   source "ganglia.index.html.erb"
   mode '0644'
 end
+
+include_recipe 'scalarium_ganglia::views'
 
 execute "Restart gmetad if not running" do # can happen if ganglia role is shared?
   command "(sleep 60 && /etc/init.d/gmetad restart) &"

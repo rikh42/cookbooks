@@ -6,9 +6,7 @@ package "libmemcache-dev" do
   action :upgrade
 end
 
-service "memcached" do
-  action :nothing
-end
+include_recipe "memcached::service"
 
 service "monit" do
   action :nothing
@@ -42,3 +40,5 @@ template "/etc/monit/conf.d/memcached.monitrc" do
   mode "0644"
   notifies :restart, resources(:service => "monit")
 end
+
+include_recipe "memcached::prepare_tests" if node[:scalarium][:run_cookbook_tests]

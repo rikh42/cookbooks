@@ -1,9 +1,10 @@
-default[:scalarium_custom_cookbooks] = {}
+include_attribute 'scalarium_cluster_state'
+
 default[:scalarium_custom_cookbooks][:enabled] = false
 default[:scalarium_custom_cookbooks][:user] = 'root'
 default[:scalarium_custom_cookbooks][:group] = 'root'
 default[:scalarium_custom_cookbooks][:home] = '/root'
-default[:scalarium_custom_cookbooks][:destination] = '/root/scalarium-agent/site-cookbooks'
+default[:scalarium_custom_cookbooks][:destination] = "#{node[:scalarium_agent_root]}/site-cookbooks"
 
 default[:scalarium_custom_cookbooks][:recipes] = []
 

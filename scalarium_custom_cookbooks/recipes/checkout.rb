@@ -16,6 +16,12 @@ if node[:scalarium_custom_cookbooks][:scm][:type].to_s == 'archive'
     :type => 'git',
     :repository => repository
   }
+elsif node[:scalarium_custom_cookbooks][:scm][:type].to_s == 's3'
+  repository = prepare_s3_checkouts(node[:scalarium_custom_cookbooks][:scm])
+  node[:scalarium_custom_cookbooks][:scm] = {
+   :scm_type => 'git',
+   :repository => repository
+  }
 end
 
 scm "Download Custom Cookbooks" do
@@ -43,5 +49,12 @@ scm "Download Custom Cookbooks" do
   
   not_if do
     node[:scalarium_custom_cookbooks][:scm][:repository].blank? || ::File.directory?(node[:scalarium_custom_cookbooks][:destination])
+  end
+end
+
+execute "ensure correct permissions of custom cookbooks" do
+  command "chmod -R go-rwx #{node[:scalarium_custom_cookbooks][:destination]}"
+  only_if do
+    ::File.exists?(node[:scalarium_custom_cookbooks][:destination])
   end
 end

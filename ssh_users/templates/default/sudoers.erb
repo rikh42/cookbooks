@@ -2,6 +2,8 @@
 # This file MUST be edited with the 'visudo' command as root.
 # See the man page for details on how to write a sudoers file.
 
+#includedir /etc/sudoers.d
+
 Defaults	env_reset
 
 # Host alias specification
@@ -27,3 +29,9 @@ ubuntu  ALL=(ALL) NOPASSWD:ALL
 <% (@sudoers || []).each do |sudoer| %>
 <%= sudoer[:name] %>  ALL=(ALL) NOPASSWD:ALL
 <% end %>
+
+scalarium-agent ALL=NOPASSWD:/tmp/scalarium-agent-installer/scalarium-agent/instance_bootstrap/remote_updater.rb
+scalarium-agent ALL=NOPASSWD:/opt/scalarium-agent/bin/chef-solo
+scalarium-agent ALL=NOPASSWD:/opt/scalarium-agent/bin/statistics
+Defaults:scalarium-agent !requiretty
+

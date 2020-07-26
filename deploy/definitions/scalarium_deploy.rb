@@ -30,14 +30,23 @@ define :scalarium_deploy do
         :scm_type => 'git',
         :repository => repository
       }
+    elsif deploy[:scm][:scm_type].to_s == 's3'
+      repository = prepare_s3_checkouts(deploy[:scm])
+      deploy[:scm] = {
+        :scm_type => 'git',
+        :repository => repository
+      }
     end
   end
 
   Chef::Log.debug("Checking out source code of application #{application} with type #{deploy[:application_type]}")
-  
+
   directory "#{deploy[:deploy_to]}/shared/cached-copy" do
     recursive true
     action :delete
+    only_if do
+      deploy[:delete_cached_copy]
+    end
   end
 
   ruby_block "change HOME to #{deploy[:home]} for source checkout" do
@@ -57,7 +66,11 @@ define :scalarium_deploy do
       environment deploy[:environment]
       symlink_before_migrate deploy[:symlink_before_migrate]
       action deploy[:action]
-      restart_command "sleep #{deploy[:sleep_before_restart]} && #{deploy[:restart_command]}"
+
+      if deploy[:application_type] == 'rails'
+        restart_command "sleep #{deploy[:sleep_before_restart]} && #{node[:scalarium][:rails_stack][:restart_command]}"
+      end
+
       case deploy[:scm][:scm_type].to_s
       when 'git'
         scm_provider :git
@@ -80,7 +93,7 @@ define :scalarium_deploy do
             Scalarium::RailsConfiguration.bundle(application, node[:deploy][application], release_path)
           end
 
-          node[:deploy][application][:database][:adapter] = Scalarium::RailsConfiguration.determine_database_adapter(application, node[:deploy][application], release_path)
+          node[:deploy][application][:database][:adapter] = Scalarium::RailsConfiguration.determine_database_adapter(application, node[:deploy][application], release_path, :force => node[:force_database_adapter_detection], :consult_gemfile => node[:deploy][application][:auto_bundle_on_deploy])
           template "#{node[:deploy][application][:deploy_to]}/shared/config/database.yml" do
             cookbook "rails"
             source "database.yml.erb"
@@ -89,6 +102,22 @@ define :scalarium_deploy do
             group node[:deploy][application][:group]
             variables(:database => node[:deploy][application][:database], :environment => node[:deploy][application][:rails_env])
           end.run_action(:create)
+        elsif deploy[:application_type] == 'php'
+          template "#{node[:deploy][application][:deploy_to]}/shared/config/scalarium.php" do
+            cookbook 'php'
+            source 'scalarium.php.erb'
+            mode '0660'
+            owner node[:deploy][application][:user]
+            group node[:deploy][application][:group]
+            variables(:database => node[:deploy][application][:database], :memcached => node[:deploy][application][:memcached], :roles => node[:scalarium][:roles])
+            only_if do
+              File.exists?("#{node[:deploy][application][:deploy_to]}/shared/config")
+            end
+          end
+        elsif deploy[:application_type] == 'nodejs'
+          if deploy[:auto_npm_install_on_deploy]
+            Scalarium::NodejsConfiguration.npm_install(application, node[:deploy][application], release_path)
+          end
         end
 
         # run user provided callback file
@@ -104,25 +133,32 @@ define :scalarium_deploy do
   end
 
   if deploy[:application_type] == 'rails' && node[:scalarium][:instance][:roles].include?('rails-app')
-    passenger_web_app do
-      application application
-      deploy deploy
+    case node[:scalarium][:rails_stack][:name]
+
+    when 'apache_passenger'
+      passenger_web_app do
+        application application
+        deploy deploy
+      end
+
+    when 'nginx_unicorn'
+      unicorn_web_app do
+        application application
+        deploy deploy
+      end
+
+    else
+      raise "Unsupport Rails stack"
     end
   end
 
-  log_dirs = []
-  log_dirs = node[:deploy].values.map{|deploy| "#{deploy[:deploy_to]}/shared/log" }
-
-  template "/etc/logrotate.d/scalarium_apps" do
+  template "/etc/logrotate.d/scalarium_app_#{application}" do
     backup false
     source "logrotate.erb"
     cookbook 'deploy'
     owner "root"
     group "root"
     mode 0644
-    variables( :log_dirs => log_dirs )
-    not_if do
-      log_dirs.empty?
-    end
+    variables( :log_dirs => ["#{deploy[:deploy_to]}/shared/log" ] )
   end
 end

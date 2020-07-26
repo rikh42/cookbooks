@@ -40,12 +40,12 @@ default[:mysql][:tunable][:max_allowed_packet]  = "32M"
 default[:mysql][:tunable][:thread_stack]        = "192K"
 default[:mysql][:tunable][:thread_cache_size]   = "8"
 default[:mysql][:tunable][:key_buffer]          = "250M"
-default[:mysql][:tunable][:max_connections]     = "1024"
+default[:mysql][:tunable][:max_connections]     = "2048"
 default[:mysql][:tunable][:wait_timeout]        = "180"
 default[:mysql][:tunable][:net_read_timeout]    = "30"
 default[:mysql][:tunable][:net_write_timeout]   = "30"
 default[:mysql][:tunable][:back_log]            = "128"
-default[:mysql][:tunable][:table_cache]         = "1024"
+default[:mysql][:tunable][:table_cache]         = "2048"
 default[:mysql][:tunable][:max_heap_table_size] = "32M"
 default[:mysql][:clients] = []
 
@@ -55,5 +55,17 @@ default[:scalarium][:instance][:architecture] = `dpkg --print-architecture`.chom
 
 default[:percona] = {}
 default[:percona][:tmp_dir] = '/tmp/percona-server'
-default[:percona][:version] = '5.1.55-12.6'
+
+if node[:platform] == 'ubuntu'
+ case node[:platform_version].to_s
+  when  '9.10'
+    # this is the latest version with packages for Karmic
+    default[:percona][:version] = '5.1.55-12.6'
+  when '10.04', '11.04', '11.10'
+    default[:percona][:version] = '5.1.57-12.8'
+  else
+    default[:percona][:version] = '5.5.24-rel26.0-256'
+  end
+end
+
 default[:percona][:url_base] = "http://peritor-assets.s3.amazonaws.com/percona"

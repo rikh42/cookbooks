@@ -1,4 +1,5 @@
 default[:scalarium][:ruby_stack] = 'ruby_enterprise'
+default[:scalarium][:run_cookbook_tests] = false
 default[:scalarium_initial_setup][:sysctl] = Mash.new
 default[:scalarium_initial_setup][:sysctl]['net.core.somaxconn'] = 1024           # 128
 default[:scalarium_initial_setup][:sysctl]['net.core.netdev_max_backlog'] = 3072  # 1000
@@ -32,3 +33,6 @@ default[:scalarium_initial_setup][:bind_mounts][:mounts] = {
   "/var/log/apache2" => "/mnt/var/log/apache2",
   "/var/log/mysql" => "/mnt/var/log/mysql"
 }
+
+# landscape removal
+default[:scalarium_initial_setup][:landscape][:packages_to_remove] = ['landscape-common', 'landscape-client']

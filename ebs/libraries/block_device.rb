@@ -11,6 +11,19 @@ module BlockDevice
     end
   end
 
+  def self.wait_for_logical_volumes
+    loop do
+      lvscan = `lvscan`
+      if lvscan.lines.all?{|line| line.include?('ACTIVE')}
+        Chef::Log.debug("All LVM volume disks seem to be active:\n#{lvscan}")
+        break
+      else
+        Chef::Log.debug("Not all LVM volume disks seem to be active, waiting 10 more seconds:\n#{lvscan}")
+        sleep 10
+      end
+    end
+  end
+
   def self.existing_raid_at?(device)
     raids = `mdadm --examine --scan`
     if raids.match(device) || raids.match(device.gsub(/md/, "md/"))
@@ -114,6 +127,7 @@ module BlockDevice
   end
 
   def self.lvm_volume_exits?(raid_device)
+    wait_for_logical_volumes
     lvscan = `lvscan`
     if lvscan.match(lvm_device(raid_device))
       Chef::Log.debug("Checking for existing LVM volume disk for #{lvm_device(raid_device)}: #{lvscan}")
@@ -136,5 +150,20 @@ module BlockDevice
       Chef::Log.fatal output
       false
     end
+  end
+
+  def self.translate_device_names(devices, skip = 0)
+    if on_kvm? && devices.size > 0
+      Chef::Log.info("Running on QEMU/KVM: Starting at /dev/sdb skipping #{skip}")
+      new_devices = ('b'..'z').to_a[0 + skip, devices.size].each_with_index.map {|char, index| [ devices[index], "/dev/sd#{char}" ]  }
+      Chef::Log.info("Running on QEMU/KVM: Translated EBS devices #{devices.inspect} to #{new_devices.map{|d| d[1]}.inspect}")
+      new_devices
+    else
+      devices
+    end
+  end
+
+  def self.on_kvm?
+    `cat /proc/cpuinfo`.match(/QEMU/)
   end
 end
